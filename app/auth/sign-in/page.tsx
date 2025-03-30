@@ -5,7 +5,6 @@ import type React from "react";
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { signIn } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,27 +17,39 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function SignInPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setErrorMessage(null);
 
     try {
+      // Import the signIn function dynamically to avoid issues
+      const { signIn } = await import("@/lib/auth");
+
       const formData = new FormData();
       formData.append("email", email);
       formData.append("password", password);
 
       const result = await signIn(formData);
 
-      if (result.error) {
+      console.log("Sign in result:", result);
+
+      if (result?.error) {
+        // Set visible error message
+        setErrorMessage(result.error);
+
+        // Also show toast
         toast({
-          title: "Error",
+          title: "Sign In Failed",
           description: result.error,
           variant: "destructive",
         });
@@ -49,8 +60,13 @@ export default function SignInPage() {
         });
         router.push("/account");
       }
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
+      console.error("Sign in error:", error);
+
+      // Set visible error message
+      setErrorMessage("An unexpected error occurred. Please try again.");
+
+      // Also show toast
       toast({
         title: "Error",
         description: "An unexpected error occurred",
@@ -71,6 +87,11 @@ export default function SignInPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {errorMessage && (
+            <Alert variant="destructive" className="mb-4">
+              <AlertDescription>{errorMessage}</AlertDescription>
+            </Alert>
+          )}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
