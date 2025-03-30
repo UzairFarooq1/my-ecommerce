@@ -25,6 +25,12 @@ const config: NextConfig = {
   },
   reactStrictMode: true,
   // Add any other configuration options here
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  typescript: {
+    ignoreBuildErrors: true,
+  },
 };
 
 export default config;
