@@ -4,7 +4,6 @@ import type React from "react";
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,61 +17,86 @@ import {
 } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { ensureUserExists } from "@/lib/ensure-user";
 
 export default function SignInPage() {
-  const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setErrorMessage(null);
+    setSuccessMessage(null);
 
     try {
-      // Import the signIn function dynamically to avoid issues
-      const { signIn } = await import("@/lib/auth");
+      const supabase = createClientComponentClient();
 
-      const formData = new FormData();
-      formData.append("email", email);
-      formData.append("password", password);
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-      const result = await signIn(formData);
-
-      console.log("Sign in result:", result);
-
-      if (result?.error) {
-        // Set visible error message
-        setErrorMessage(result.error);
-
-        // Also show toast
+      if (error) {
+        console.error("Sign in error:", error);
+        setErrorMessage(error.message);
         toast({
           title: "Sign In Failed",
-          description: result.error,
+          description: error.message,
           variant: "destructive",
         });
-      } else {
-        toast({
-          title: "Success",
-          description: "Signed in successfully",
-        });
-        router.push("/account");
+        setIsLoading(false);
+        return;
       }
+
+      if (!data.session) {
+        setErrorMessage("Failed to create session. Please try again.");
+        toast({
+          title: "Sign In Failed",
+          description: "Failed to create session. Please try again.",
+          variant: "destructive",
+        });
+        setIsLoading(false);
+        return;
+      }
+
+      setSuccessMessage(
+        "Signed in successfully! Redirecting to your account..."
+      );
+
+      // Ensure user exists in the users table
+      try {
+        await ensureUserExists(data.user.id, {
+          email: data.user.email || "",
+          first_name: data.user.user_metadata?.first_name,
+          last_name: data.user.user_metadata?.last_name,
+        });
+      } catch (error) {
+        console.error("Error ensuring user exists:", error);
+        // Continue anyway, the account page will handle it
+      }
+
+      toast({
+        title: "Success",
+        description: "Signed in successfully",
+      });
+
+      // Redirect after a short delay to allow the user to see the success message
+      setTimeout(() => {
+        window.location.href = "/account";
+      }, 1000);
     } catch (error) {
       console.error("Sign in error:", error);
-
-      // Set visible error message
       setErrorMessage("An unexpected error occurred. Please try again.");
-
-      // Also show toast
       toast({
         title: "Error",
         description: "An unexpected error occurred",
         variant: "destructive",
       });
-    } finally {
       setIsLoading(false);
     }
   };
@@ -92,6 +116,13 @@ export default function SignInPage() {
               <AlertDescription>{errorMessage}</AlertDescription>
             </Alert>
           )}
+
+          {successMessage && (
+            <Alert className="mb-4 bg-green-50 border-green-200 text-green-800">
+              <AlertDescription>{successMessage}</AlertDescription>
+            </Alert>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
@@ -102,6 +133,7 @@ export default function SignInPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                disabled={isLoading}
               />
             </div>
             <div className="space-y-2">
@@ -113,6 +145,7 @@ export default function SignInPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                disabled={isLoading}
               />
             </div>
             <Button

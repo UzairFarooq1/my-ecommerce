@@ -6,6 +6,10 @@ import type { Database } from "@/lib/database.types"
 let supabaseClient: ReturnType<typeof createClient<Database>> | null = null
 
 export function createClientSupabaseClient() {
+  if (supabaseClient) {
+    return supabaseClient
+  }
+
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
@@ -13,9 +17,13 @@ export function createClientSupabaseClient() {
     throw new Error("Missing Supabase environment variables")
   }
 
-  if (!supabaseClient) {
-    supabaseClient = createClient<Database>(supabaseUrl, supabaseKey)
-  }
+  supabaseClient = createClient<Database>(supabaseUrl, supabaseKey, {
+    auth: {
+      persistSession: true,
+      storageKey: "supabase-auth",
+      autoRefreshToken: true,
+    },
+  })
 
   return supabaseClient
 }

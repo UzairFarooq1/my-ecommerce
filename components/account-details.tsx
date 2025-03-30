@@ -7,11 +7,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { updateUserProfile } from "@/lib/update-user-profile";
 
 interface User {
+  id: string;
+  email: string;
   first_name?: string | null;
   last_name?: string | null;
-  email?: string;
   phone?: string | null;
   address?: string | null;
   city?: string | null;
@@ -25,6 +28,10 @@ interface AccountDetailsProps {
 
 export function AccountDetails({ user }: AccountDetailsProps) {
   const [isEditing, setIsEditing] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [debugInfo, setDebugInfo] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     firstName: user?.first_name || "",
     lastName: user?.last_name || "",
@@ -43,15 +50,64 @@ export function AccountDetails({ user }: AccountDetailsProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
+    setErrorMessage(null);
+    setSuccessMessage(null);
+    setDebugInfo(null);
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    try {
+      if (!user) {
+        throw new Error("User not found");
+      }
 
-    setIsEditing(false);
-    toast({
-      title: "Profile Updated",
-      description: "Your account details have been updated successfully.",
-    });
+      setDebugInfo(`Updating user profile for ID: ${user.id}`);
+
+      const result = await updateUserProfile({
+        id: user.id,
+        first_name: formData.firstName,
+        last_name: formData.lastName,
+        phone: formData.phone,
+        address: formData.address,
+        city: formData.city,
+        postal_code: formData.postalCode,
+        country: formData.country,
+      });
+
+      if (!result.success) {
+        setErrorMessage(
+          `Failed to update profile: ${JSON.stringify(result.error)}`
+        );
+        setDebugInfo(
+          (prev) => `${prev}\nError: ${JSON.stringify(result.error)}`
+        );
+        toast({
+          title: "Error",
+          description: "Failed to update profile. Please try again.",
+          variant: "destructive",
+        });
+      } else {
+        setSuccessMessage("Profile updated successfully!");
+        setDebugInfo((prev) => `${prev}\nProfile updated successfully`);
+        toast({
+          title: "Profile Updated",
+          description: "Your account details have been updated successfully.",
+        });
+        setIsEditing(false);
+      }
+    } catch (error) {
+      console.error("Error updating user:", error);
+      setErrorMessage(`An unexpected error occurred: ${JSON.stringify(error)}`);
+      setDebugInfo(
+        (prev) => `${prev}\nUnexpected error: ${JSON.stringify(error)}`
+      );
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   if (!user) {
@@ -64,6 +120,26 @@ export function AccountDetails({ user }: AccountDetailsProps) {
 
   return (
     <div className="space-y-6">
+      {errorMessage && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertDescription>{errorMessage}</AlertDescription>
+        </Alert>
+      )}
+
+      {successMessage && (
+        <Alert className="mb-4 bg-green-50 border-green-200 text-green-800">
+          <AlertDescription>{successMessage}</AlertDescription>
+        </Alert>
+      )}
+
+      {debugInfo && (
+        <Alert className="mb-4 bg-blue-50 border-blue-200 text-blue-800">
+          <AlertDescription className="whitespace-pre-wrap font-mono text-xs">
+            {debugInfo}
+          </AlertDescription>
+        </Alert>
+      )}
+
       {!isEditing ? (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -124,6 +200,7 @@ export function AccountDetails({ user }: AccountDetailsProps) {
                 name="firstName"
                 value={formData.firstName}
                 onChange={handleChange}
+                disabled={isLoading}
               />
             </div>
             <div className="space-y-2">
@@ -133,6 +210,7 @@ export function AccountDetails({ user }: AccountDetailsProps) {
                 name="lastName"
                 value={formData.lastName}
                 onChange={handleChange}
+                disabled={isLoading}
               />
             </div>
             <div className="space-y-2">
@@ -153,6 +231,7 @@ export function AccountDetails({ user }: AccountDetailsProps) {
                 name="phone"
                 value={formData.phone}
                 onChange={handleChange}
+                disabled={isLoading}
               />
             </div>
             <div className="space-y-2">
@@ -162,6 +241,7 @@ export function AccountDetails({ user }: AccountDetailsProps) {
                 name="address"
                 value={formData.address}
                 onChange={handleChange}
+                disabled={isLoading}
               />
             </div>
             <div className="space-y-2">
@@ -171,6 +251,7 @@ export function AccountDetails({ user }: AccountDetailsProps) {
                 name="city"
                 value={formData.city}
                 onChange={handleChange}
+                disabled={isLoading}
               />
             </div>
             <div className="space-y-2">
@@ -180,6 +261,7 @@ export function AccountDetails({ user }: AccountDetailsProps) {
                 name="postalCode"
                 value={formData.postalCode}
                 onChange={handleChange}
+                disabled={isLoading}
               />
             </div>
             <div className="space-y-2">
@@ -189,15 +271,19 @@ export function AccountDetails({ user }: AccountDetailsProps) {
                 name="country"
                 value={formData.country}
                 onChange={handleChange}
+                disabled={isLoading}
               />
             </div>
           </div>
           <div className="flex gap-2">
-            <Button type="submit">Save Changes</Button>
+            <Button type="submit" disabled={isLoading}>
+              {isLoading ? "Saving..." : "Save Changes"}
+            </Button>
             <Button
               type="button"
               variant="outline"
               onClick={() => setIsEditing(false)}
+              disabled={isLoading}
             >
               Cancel
             </Button>
