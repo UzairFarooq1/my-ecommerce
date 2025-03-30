@@ -1,46 +1,24 @@
-import Link from "next/link"
-import Image from "next/image"
-import { Button } from "@/components/ui/button"
-
-export function PromoSection() {
+const PromoSection = () => {
   return (
-    <section className="container px-4 mx-auto">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <div className="relative overflow-hidden rounded-lg h-[400px] group">
-          <Image
-            src="https://images.unsplash.com/photo-1489987707025-afc232f7ea0f?q=80&w=2670&auto=format&fit=crop"
-            alt="Men's Collection"
-            fill
-            className="object-cover transition-transform duration-500 group-hover:scale-105"
-            sizes="(max-width: 768px) 100vw, 50vw"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex flex-col justify-end p-8 text-white">
-            <h3 className="text-2xl font-bold mb-2">Men's Collection</h3>
-            <p className="mb-4 max-w-md">Discover our latest men's fashion with premium quality materials.</p>
-            <Button asChild className="w-fit bg-white text-black hover:bg-white/90">
-              <Link href="/categories/men">Shop Men</Link>
-            </Button>
-          </div>
-        </div>
-
-        <div className="relative overflow-hidden rounded-lg h-[400px] group">
-          <Image
-            src="https://images.unsplash.com/photo-1483985988355-763728e1935b?q=80&w=2670&auto=format&fit=crop"
-            alt="Women's Collection"
-            fill
-            className="object-cover transition-transform duration-500 group-hover:scale-105"
-            sizes="(max-width: 768px) 100vw, 50vw"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex flex-col justify-end p-8 text-white">
-            <h3 className="text-2xl font-bold mb-2">Women's Collection</h3>
-            <p className="mb-4 max-w-md">Explore our stylish women's fashion for every occasion.</p>
-            <Button asChild className="w-fit bg-white text-black hover:bg-white/90">
-              <Link href="/categories/women">Shop Women</Link>
-            </Button>
-          </div>
-        </div>
+    <section className="bg-gray-100 py-12">
+      <div className="container mx-auto text-center">
+        <h2 className="text-3xl font-semibold mb-4">Exclusive Summer Sale!</h2>
+        <p className="mb-4 max-w-md mx-auto">
+          Discover our latest men&apos;s fashion with premium quality materials.
+        </p>
+        <p className="mb-4 max-w-md mx-auto">
+          Don&apos;t miss out on this limited-time offer. Shop now and upgrade
+          your wardrobe!
+        </p>
+        <a
+          href="#"
+          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+        >
+          Shop Now
+        </a>
       </div>
     </section>
-  )
-}
+  );
+};
 
+export default PromoSection;
