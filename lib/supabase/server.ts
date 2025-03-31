@@ -4,7 +4,16 @@ import { cookies } from "next/headers"
 // This is the new function with the new name
 export async function createClient() {
   try {
-    const cookieStore = await cookies()
+    // During static generation, cookies() might throw an error
+    // We need to handle this case
+    let cookieStore
+    try {
+      cookieStore = await cookies()
+    } catch (error) {
+      console.error("Error accessing cookies:", error)
+      // Return null during static generation
+      return null
+    }
 
     return createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
       cookies: {
