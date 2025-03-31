@@ -1,8 +1,8 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr"
 import { cookies } from "next/headers"
 
+// This is the new function with the new name
 export async function createClient() {
-  // Since cookies() is returning a Promise in your environment
   const cookieStore = await cookies()
 
   return createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
@@ -41,4 +41,8 @@ export async function createClient() {
     },
   })
 }
+
+// This maintains backward compatibility with your existing code
+// It just calls the new function with the new name
+export const createServerSupabaseClient = createClient
 
