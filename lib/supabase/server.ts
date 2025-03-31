@@ -1,14 +1,44 @@
-import { createClient } from "@supabase/supabase-js"
-import type { Database } from "@/lib/database.types"
+import { createServerClient, type CookieOptions } from "@supabase/ssr"
+import { cookies } from "next/headers"
 
-export function createServerSupabaseClient() {
-  const supabaseUrl = process.env.SUPABASE_URL
-  const supabaseKey = process.env.SUPABASE_ANON_KEY
+export async function createClient() {
+  // Since cookies() is returning a Promise in your environment
+  const cookieStore = await cookies()
 
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error("Missing Supabase environment variables")
-  }
-
-  return createClient<Database>(supabaseUrl, supabaseKey)
+  return createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
+    cookies: {
+      get(name: string) {
+        return cookieStore.get(name)?.value
+      },
+      set(name: string, value: string, options: CookieOptions) {
+        try {
+          cookieStore.set({
+            name,
+            value,
+            ...options,
+          })
+        } catch (error) {
+          // This can be ignored if you have middleware refreshing
+          // user sessions
+          console.error("Cookie set error (can be ignored in middleware):", error)
+        }
+      },
+      remove(name: string, options: CookieOptions) {
+        try {
+          cookieStore.set({
+            name,
+            value: "",
+            ...options,
+            // Make sure the cookie expires
+            maxAge: 0,
+          })
+        } catch (error) {
+          // This can be ignored if you have middleware refreshing
+          // user sessions
+          console.error("Cookie remove error (can be ignored in middleware):", error)
+        }
+      },
+    },
+  })
 }
 

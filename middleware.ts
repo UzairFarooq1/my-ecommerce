@@ -1,33 +1,48 @@
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
-import { createMiddlewareClient } from "@supabase/auth-helpers-nextjs"
+import { createServerClient } from "@supabase/ssr"
 
-export async function middleware(req: NextRequest) {
-  try {
-    const res = NextResponse.next()
+export async function middleware(request: NextRequest) {
+  const response = NextResponse.next({
+    request: {
+      headers: request.headers,
+    },
+  })
 
-    // Create a Supabase client configured to use cookies
-    const supabase = createMiddlewareClient({ req, res })
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name) {
+          return request.cookies.get(name)?.value
+        },
+        set(name, value, options) {
+          // This is called when the auth state changes
+          response.cookies.set({
+            name,
+            value,
+            ...options,
+          })
+        },
+        remove(name, options) {
+          response.cookies.set({
+            name,
+            value: "",
+            ...options,
+            expires: new Date(0),
+          })
+        },
+      },
+    },
+  )
 
-    // Refresh session if expired - required for Server Components
-    await supabase.auth.getSession()
+  await supabase.auth.getSession()
 
-    return res
-  } catch (error) {
-    console.error('Middleware error:', error)
-    // Return the original response even if there's an error
-    // This prevents the middleware from failing completely
-    return NextResponse.next()
-  }
+  return response
 }
 
-// Simplify the matcher pattern
 export const config = {
-  matcher: [
-    // Apply middleware to these paths
-    '/',
-    '/dashboard/:path*',
-    '/api/:path*',
-    // Add other specific paths you need middleware for
-  ],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"],
 }
+
